@@ -49,3 +49,15 @@ begin
     from P_OSOBA where rod = ROD_CISLO;
     return vek;
 end;
+
+--Vytvorte poh¾ad, ktorı bude obsahova osoby a ich prislúchajúce poistenie (aj ak iadne nemajú).
+create or replace view zobrazPoistenia as
+    select id_poistenca, ROD_CISLO, MENO, PRIEZVISKO from P_OSOBA
+        left join P_POISTENIE using(ROD_CISLO);
+
+--Vytvorte poh¾ad, ktorı bude obsahova mestá a poèet osôb s trvalım pobytom.
+create or replace view pocetOsobVMeste as
+    select PSC, N_MESTA, count(ROD_CISLO) pocet_obyvatelov from P_MESTO
+    left join P_OSOBA using(PSC)
+    group by PSC, N_MESTA
+    order by pocet_obyvatelov desc;
