@@ -1,3 +1,5 @@
+![Model socialnej poistovne](soc_poist.jpg)
+
 # Opakovanie – SQL úlohy
 
 Tento dokument obsahuje zoznam úloh na precvičenie SQL – pohľady, funkcie, procedúry, triggery, DML príkazy, vzťahy a časové operácie.
