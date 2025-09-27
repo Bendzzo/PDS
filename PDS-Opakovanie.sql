@@ -1,10 +1,12 @@
 --pocet poistencov pre kazdeho platitela
-select ID_PLATITELA, count(ID_POISTENCA) as pocetPlatitelov from P_PLATITEL left join P_POISTENIE using(id_platitela)
+select ID_PLATITELA, count(ID_POISTENCA) as pocetPlatitelov from P_PLATITEL
+    left join P_POISTENIE using(id_platitela)
 group by ID_PLATITELA
 order by count(ID_POISTENCA) desc;
 
 --pocet osob v meste
-select PSC, N_MESTA, count(ROD_CISLO) as pocetObyvatelov from P_MESTO left join P_OSOBA using(PSC)
+select PSC, N_MESTA, count(ROD_CISLO) as pocetObyvatelov from P_MESTO
+    left join P_OSOBA using(PSC)
 group by PSC, N_MESTA
 order by count(ROD_CISLO) desc;
 
@@ -108,7 +110,7 @@ create or replace view poistenci_posledna_platba as
 
 -- 10. Vytvorte poh¾ad, ktorý bude obsahova osoby a ich príspevky vrátane názvu typu príspevku.
 create or replace view osoby_a_ich_prispevky as
-    select MENO, PRIEZVISKO, po.ROD_CISLO,
+    select MENO, PRIEZVISKO, po.ROD_CISLO, count(*) pocetPrispevkov,
         LISTAGG(POPIS, ', ') within group ( order by POPIS ) as prispevky
         from P_OSOBA po
     join P_POBERATEL pp on (po.ROD_CISLO = pp.ROD_CISLO)
@@ -116,6 +118,70 @@ create or replace view osoby_a_ich_prispevky as
     join P_TYP_PRISPEVKU pt on (pp.ID_TYPU = pt.ID_TYPU)
     group by MENO, PRIEZVISKO, po.ROD_CISLO
     order by MENO, PRIEZVISKO;
+
+
+--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- SELECT – GROUP BY, HAVING, EXISTS, JOIN
+
+-- 11. Poèet poistencov pre každého platite¾a.
+select ID_PLATITELA, count(ID_POISTENCA) pocetPoistencov from P_PLATITEL
+    left join P_POISTENIE using(ID_PLATITELA)
+    group by ID_PLATITELA;
+
+--12. Poèet osôb pod¾a mesta.
+select PSC, N_MESTA, count(ROD_CISLO) from P_MESTO
+    left join P_OSOBA using (PSC)
+group by PSC, N_MESTA;
+
+-- 13. Poèet záznamov v p_prispevky pod¾a typu.
+select ID_TYPU, count(*) from P_PRISPEVKY
+    group by ID_TYPU;
+
+
+-- 14. Priemerná výška príspevku pod¾a typu.
+select ID_TYPU, POPIS, AVG(suma) from P_PRISPEVKY
+    join P_TYP_PRISPEVKU using (id_typu)
+    group by ID_TYPU, POPIS;
+
+-- 15. Poèet rôznych zamestnávate¾ov pre každé PSÈ.
+select PSC, count(distinct ICO) from P_ZAMESTNAVATEL
+    group by PSC;
+
+-- 16. Osoby, ktoré sú zároveò poistencami (EXISTS).
+select MENO, PRIEZVISKO, ROD_CISLO from P_OSOBA po
+    where exists(select 'x' from P_POISTENIE pp
+                    where po.ROD_CISLO = pp.ROD_CISLO);
+
+
+-- 17. Poistenci s aspoò dvoma záznamami v p_odvod_platba (EXISTS).
+select ID_POISTENCA, MENO, PRIEZVISKO from P_POISTENIE pp
+    join P_OSOBA using(ROD_CISLO)
+    where exists(select 'x' from P_ODVOD_PLATBA po
+                    where pp.ID_POISTENCA = po.ID_POISTENCA
+                    group by po.ID_POISTENCA
+                    having count(CIS_PLATBY) > 1)
+    group by ID_POISTENCA, MENO, PRIEZVISKO;
+
+-- 18. Typy príspevkov použité aspoò 3-krát (IN).
+select ID_TYPU, POPIS from P_TYP_PRISPEVKU
+    where ID_TYPU in (select ID_TYPU
+                        from P_PRISPEVKY
+                        group by ID_TYPU
+                        having count(*) >= 3);
+
+-- 19. Osoby, ktoré nie sú poistencami (NOT EXISTS).
+select meno, priezvisko, ROD_CISLO from P_OSOBA po
+    where not exists(select 'x' from P_POISTENIE pp
+                        where po.ROD_CISLO = pp.ROD_CISLO)
+
+--20. Osoby s najvyšším poètom odvodov (GROUP BY + ORDER BY + LIMIT).
+select MENO, PRIEZVISKO, count(CIS_PLATBY) from P_OSOBA
+    join p_poistenie using(ROD_CISLO)
+    join P_ODVOD_PLATBA using(id_poistenca)
+    group by MENO, PRIEZVISKO, ROD_CISLO
+    order by count(CIS_PLATBY) desc
+    fetch first 1 rows with ties;
+
 
 
 
