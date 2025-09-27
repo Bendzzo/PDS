@@ -182,6 +182,42 @@ select MENO, PRIEZVISKO, count(CIS_PLATBY) from P_OSOBA
     order by count(CIS_PLATBY) desc
     fetch first 1 rows with ties;
 
+--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- Funkcie
+
+-- 21. Funkcia: poèet príspevkov pre poberate¾a.
+create or replace function getPocetPrispevkov(p_id_poberatela in number)
+    return number
+    is v_pocetPrispevkov number;
+    begin
+        select count(*) as pocetPrispevkov into v_pocetPrispevkov from P_PRISPEVKY
+        where id_poberatela = p_id_poberatela;
+        return v_pocetPrispevkov;
+    end;
+
+
+-- 22. Funkcia: celková suma platieb pre poistenca.
+    create or replace function f_getSumaPlatieb(p_id_poistenca in number)
+    return number
+    is v_suma number;
+    begin
+        select nvl(sum(suma), 0) into v_suma from P_ODVOD_PLATBA
+            where p_id_poistenca = ID_POISTENCA;
+        return v_suma;
+    end;
+
+select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
+
+-- Funkcia: zistí, èi má osoba aspoò 1 príspevok (TRUE/FALSE).
+-- Funkcia: zistí, èi osoba žije v Nitrianskom kraji.
+-- Funkcia: vráti poèet rôznych rokov, v ktorých osoba poberala príspevok.
+-- Funkcia: priemerná výška príspevku pod¾a typu pre daného poberate¾a.
+-- Funkcia: poèet zamestnávate¾ov pre dané rodné èíslo.
+-- Funkcia: vráti TRUE, ak osoba má aktívne poistenie.
+-- Funkcia: poèet zamestnaní, ktoré osoba absolvovala.
+-- Funkcia: celková výška základnej sumy pre všetky typy príspevkov, ktoré osoba dostala.
+
+
 
 
 
