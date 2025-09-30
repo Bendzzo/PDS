@@ -351,7 +351,6 @@ select getPocetRokovPrispevkov('800704/7675') from dual;
             where ID_TYPU = p_id_typu
         order by dat_od;
 
-        v_historia historia_cur%ROWTYPE;
     begin
 --         open historia_cur;
 --         fetch historia_cur into v_historia;
@@ -374,7 +373,20 @@ select *
 from P_HISTORIA;
 
 -- Vypíš poèet osôb a poistencov v zadanom PSÈ.
+    create or replace procedure pocet_osob_a_poistencov(p_PSC in P_OSOBA.PSC%type)
+    is  v_pocet_osob number;
+        v_pocet_poistencov number;
+    begin
+        select count(ROD_CISLO) into v_pocet_osob from P_OSOBA
+        where PSC = p_PSC;
 
+        select count(distinct ROD_CISLO) into v_pocet_poistencov from P_OSOBA
+            join P_POISTENIE using(ROD_CISLO)
+        where PSC = p_PSC;
+
+        dbms_output.put_line('Pocet osob: ' || v_pocet_osob);
+        dbms_output.put_line('Pocet poistencov: ' || v_pocet_poistencov);
+    end;
 -- Vypíš mená zamestnancov pre kadého zamestnávate¾a vrátane info o poistení.
 -- Vypíš osoby, ktoré nemajú iadne príspevky.
 -- Vypíš sumu odvodov za zvolené obdobie a poistenca.
@@ -383,6 +395,31 @@ from P_HISTORIA;
 -- Vypíš pre kadé mesto poèet zamestnancov.
 -- Vypíš poistencov, ktorım poistenie zaèalo pred rokom 2020.
 
+--*******************************TRIGGRE***************************************************
+
+-- Trigger: nastav dat_do na NULL pri vklade do p_zamestnanec.
+-- Trigger: zákaz vloi zápornú sumu do p_odvod_platba. (Ako to zabezpeèi inak bez triggra?)
+-- Trigger: kontrola existencie osoby pri vklade do p_poistenie.
+-- Trigger: zmazanie poistenia a zamestnaní po zmazaní osoby.
+-- Trigger: zákaz duplicitného aktívneho poistenia jednej osoby.
+-- Trigger: zákaz pridania zamestnanca staršieho ako 70 rokov.
+-- Trigger: pri vloení príspevku overi, e suma pri nezamestnanosti nie je vyššia ne 1000 EUR.
+-- Trigger: aktualizácia poètu zamestnancov v pomocnej tabu¾ke pri novom vklade.
+-- Trigger: ak sa vloí novı typ príspevku, automaticky sa vloí do p_historia s aktuálnym dátumom.
+-- Trigger: ktorı zabraní vyplni dátum skúšky s hodnotou väèšou ako 20:00.
+
+
+--******************************DML**********************************************************
+-- Vlo novú osobu, ktorá má nastavenı aj trvalı pobyt a poistenie.
+-- Zmeò zamestnávate¾a pre konkrétneho zamestnanca.
+-- Odstráò všetky príspevky staršie ne 5 rokov.
+-- Vlo novı typ príspevku a pridaj záznam o jeho pouití pre osobu.
+-- Vymate všetkıch poistencov, ktorí majú ukonèené poistenie (dat_do nie je NULL) a zároveò nemajú iadne odvodové platby.
+-- Odstráò osoby, ktoré nemajú iadne poistenie, zamestnanie ani príspevok.
+-- Vlo nového poistenca so všetkımi povinnımi údajmi a priradenou platbou.
+-- Zmeòte mesto trvalého pobytu na 'Bratislava' pre všetky osoby, ktoré majú momentálne PSÈ zaèínajúce na '9'.
+-- Pridajte nového poistenca na základe existujúcej osoby. Nastavte dátum zaèiatku poistenia na dnešnı dátum.
+-- Aktualizuj typ postihnutia pre osoby, ktoré majú len jeden príspevok.
 
 
 
