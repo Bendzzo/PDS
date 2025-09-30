@@ -345,7 +345,36 @@ select getPocetRokovPrispevkov('800704/7675') from dual;
     end;
 
 -- Vypíš históriu typu príspevku pod¾a ID typu.
+    create or replace procedure vypisHistoriuTypu(p_id_typu in P_HISTORIA.id_typu%type)
+    is cursor historia_cur
+        is select * from P_HISTORIA
+            where ID_TYPU = p_id_typu
+        order by dat_od;
+
+        v_historia historia_cur%ROWTYPE;
+    begin
+--         open historia_cur;
+--         fetch historia_cur into v_historia;
+--         if historia_cur%found then
+            for zaznam in historia_cur loop
+                dbms_output.PUT_LINE('ID: ' || zaznam.ID_TYPU);
+                dbms_output.PUT_LINE('Od: ' || zaznam.DAT_OD);
+                dbms_output.PUT_LINE('Do: ' || zaznam.DAT_DO);
+                dbms_output.PUT_LINE('$: ' || zaznam.ZAKL_VYSKA );
+                dbms_output.PUT_LINE('');
+            end loop;
+
+
+--         else
+--             dbms_output.PUT_LINE('Tento typ neexistuje!');
+--         end if;
+    end;
+
+select *
+from P_HISTORIA;
+
 -- Vypíš poèet osôb a poistencov v zadanom PSÈ.
+
 -- Vypíš mená zamestnancov pre každého zamestnávate¾a vrátane info o poistení.
 -- Vypíš osoby, ktoré nemajú žiadne príspevky.
 -- Vypíš sumu odvodov za zvolené obdobie a poistenca.
