@@ -211,7 +211,7 @@ select getPocetPrispevkov(737) from dual;
 select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
 
 -- Funkcia: zistí, èi má osoba aspoò 1 príspevok (TRUE/FALSE).
-    create or replace function maAsponJedenPrispevok(p_rod_cislo in Char(11))
+    create or replace function maAsponJedenPrispevok(p_rod_cislo in Char)
         return number
     is v_existuje number;
         begin
@@ -226,12 +226,12 @@ select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
             return v_existuje;
         end;
 
-SELECT maAsponJedenPrispevok('810224/7604')  FROM dual;
+SELECT maAsponJedenPrispevok('910224/7604')  FROM dual;
 
 
 -- Funkcia: zistí, èi osoba žije v Nitrianskom kraji.
 
-    create or replace function zijeVNitrianskom(p_rod_cislo in char(11))
+    create or replace function zijeVNitrianskom(p_rod_cislo in char)
     return number
     is  v_jeZNitry number;
         begin
@@ -248,15 +248,25 @@ SELECT maAsponJedenPrispevok('810224/7604')  FROM dual;
             end if;
         end;
 
-        select zijeVNitrianskom('965608/8343') from dual;
-
-
+        select zijeVNitrianskom('965607/8343') from dual;
 
 --14875 965608/8343
 
-select *
-from P_KRAJ;
 -- Funkcia: vráti poèet rôznych rokov, v ktorých osoba poberala príspevok.
+create or replace function getPocetRokovPrispevkov(p_rod_cislo in P_OSOBA.ROD_CISLO%type)
+return number
+is v_pocet_rokov number;
+begin
+    select count(distinct extract(year from OBDOBIE)) into v_pocet_rokov from P_PRISPEVKY
+        join P_POBERATEL using(id_poberatela)
+        join P_OSOBA using(rod_cislo)
+        where p_rod_cislo = ROD_CISLO;
+    return v_pocet_rokov;
+end;
+
+select getPocetRokovPrispevkov('800704/7675') from dual;
+
+
 -- Funkcia: priemerná výška príspevku pod¾a typu pre daného poberate¾a.
 -- Funkcia: poèet zamestnávate¾ov pre dané rodné èíslo.
 -- Funkcia: vráti TRUE, ak osoba má aktívne poistenie.
