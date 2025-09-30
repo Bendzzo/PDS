@@ -266,13 +266,66 @@ end;
 
 select getPocetRokovPrispevkov('800704/7675') from dual;
 
+-- Funkcia: priemerná výška príspevku pod¾a typu pre daného poberate¾a. CO TO JE BRO????
+    --create or replace function f_priemerny_prispevok_typ(p_id_poberatel in P_POBERATEL.ID_POBERATELA%type, p_typ in P_POBERATEL.ID_TYPU%type)
+    --return
 
--- Funkcia: priemerná výška príspevku pod¾a typu pre daného poberate¾a.
 -- Funkcia: poèet zamestnávate¾ov pre dané rodné èíslo.
--- Funkcia: vráti TRUE, ak osoba má aktívne poistenie.
--- Funkcia: poèet zamestnaní, ktoré osoba absolvovala.
--- Funkcia: celková výška základnej sumy pre všetky typy príspevkov, ktoré osoba dostala.
 
+    create or replace function f_getPocetZamestnavatelov(p_rod_cislo in P_ZAMESTNANEC.ROD_CISLO%type)
+    return number
+    is v_pocet number;
+        begin
+            select count(distinct ID_ZAMESTNAVATELA) into v_pocet from P_ZAMESTNANEC
+                where ROD_CISLO = p_rod_cislo;
+            return v_pocet;
+        end;
+
+    select f_getPocetZamestnavatelov('965608/8343') from dual;
+
+
+-- Funkcia: vráti TRUE, ak osoba má aktívne poistenie.
+
+-- Funkcia: poèet zamestnaní, ktoré osoba absolvovala.
+    create or replace function f_getPocetZamestnani(p_rod_cislo in P_OSOBA.ROD_CISLO%type)
+    return number
+    is v_pocet_rokov number;
+        begin
+            select count(id_zamestnavatela) into v_pocet_rokov from P_OSOBA
+                left join P_ZAMESTNANEC using(rod_cislo)
+            where ROD_CISLO = p_rod_cislo;
+            return v_pocet_rokov;
+        end;
+
+        select f_getPocetZamestnani('965608/8343') from dual;
+
+-- Funkcia: celková výška základnej sumy pre všetky typy príspevkov, ktoré osoba dostala.
+    create or replace function f_vyska_sumy_prispevkov(p_rod_cislo in P_OSOBA.rod_cislo%type)
+    return number
+    is v_suma number;
+        begin
+            select sum(SUMA) into v_suma from P_PRISPEVKY
+            join P_POBERATEL using(id_poberatela)
+            join P_OSOBA using(ROD_CISLO)
+            where ROD_CISLO = p_rod_cislo;
+            return v_suma;
+        end;
+
+        select f_vyska_sumy_prispevkov('800704/7675') from dual;
+
+--KONECNE FUNKCIE DONE!!!!
+
+--Procedúry – kurzory ************************************************************************************
+-- Vypíš informácie o osobe pod¾a rodného èísla.
+-- Vypíš históriu typu príspevku pod¾a ID typu.
+-- Vypíš poèet osôb a poistencov v zadanom PSÈ.
+-- Vypíš mená zamestnancov pre každého zamestnávate¾a vrátane info o poistení.
+-- Vypíš osoby, ktoré nemajú žiadne príspevky.
+-- Vypíš sumu odvodov za zvolené obdobie a poistenca.
+-- Vypíš všetkých poistencov, ktorí nemajú žiadne platby.
+-- Vypíš osoby s najvyšším poètom rôznych typov príspevkov.
+-- Vypíš pre každé mesto poèet zamestnancov.
+-- Vypíš poistencov, ktorým poistenie zaèalo pred rokom 2020.
 
 
 
