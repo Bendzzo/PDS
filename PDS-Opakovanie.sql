@@ -196,6 +196,8 @@ create or replace function getPocetPrispevkov(p_id_poberatela in number)
     end;
 
 
+select getPocetPrispevkov(737) from dual;
+
 -- 22. Funkcia: celková suma platieb pre poistenca.
     create or replace function f_getSumaPlatieb(p_id_poistenca in number)
     return number
@@ -224,6 +226,8 @@ select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
             return v_existuje;
         end;
 
+SELECT maAsponJedenPrispevok('810224/7604')  FROM dual;
+
 
 -- Funkcia: zistí, èi osoba žije v Nitrianskom kraji.
 
@@ -232,10 +236,11 @@ select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
     is  v_jeZNitry number;
         begin
             select count(*) into v_jeZNitry from p_osoba
-                join P_MESTO pm using(PSC)
+                join P_MESTO using(PSC)
                 join P_OKRES using(id_okresu)
                 join P_KRAJ using(id_kraja)
-            where n_kraja like 'Nitr%';
+            where n_kraja like 'Nitr%'
+            and ROD_CISLO = p_rod_cislo;
             if v_jeZNitry > 0
                 then return 1;
             else
@@ -244,6 +249,8 @@ select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
         end;
 
         select zijeVNitrianskom('965608/8343') from dual;
+
+
 
 --14875 965608/8343
 
