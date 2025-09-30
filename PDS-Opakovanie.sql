@@ -316,7 +316,34 @@ select getPocetRokovPrispevkov('800704/7675') from dual;
 --KONECNE FUNKCIE DONE!!!!
 
 --Procedúry – kurzory ************************************************************************************
--- Vypíš informácie o osobe pod¾a rodného èísla.
+-- 31. Vypíš informácie o osobe pod¾a rodného èísla.
+    create or replace procedure vypisInfoOsoba(p_rod_cislo in P_OSOBA.ROD_CISLO%type)
+    is cursor osoba_cur is
+        select * from P_OSOBA
+            where ROD_CISLO = p_rod_cislo;
+
+        v_osoba osoba_cur%ROWTYPE;
+    begin
+        open osoba_cur;
+        fetch osoba_cur into v_osoba;
+            if osoba_cur%found then
+                dbms_output.PUT_LINE('Meno: ' || v_osoba.MENO);
+                dbms_output.PUT_LINE('Priezvisko: ' || v_osoba.PRIEZVISKO);
+                dbms_output.PUT_LINE('ROD CISLO: ' || v_osoba.ROD_CISLO);
+                else
+                dbms_output.PUT_LINE('Dana osoba neexistuje!');
+            end if;
+        close osoba_cur;
+    end;
+
+    --V sql developer funguje aj tento prikaz, neviem preco tu nie
+        exec vypisInfoOsoba('800704/7675');
+        call vypisInfoOsoba('800704/7675');
+
+    begin
+        vypisInfoOsoba('800704/7675');
+    end;
+
 -- Vypíš históriu typu príspevku pod¾a ID typu.
 -- Vypíš poèet osôb a poistencov v zadanom PSÈ.
 -- Vypíš mená zamestnancov pre každého zamestnávate¾a vrátane info o poistení.
