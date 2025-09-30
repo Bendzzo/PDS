@@ -209,7 +209,46 @@ create or replace function getPocetPrispevkov(p_id_poberatela in number)
 select F_GETSUMAPLATIEB(0)  sumaPLatieb from dual;
 
 -- Funkcia: zistí, èi má osoba aspoò 1 príspevok (TRUE/FALSE).
+    create or replace function maAsponJedenPrispevok(p_rod_cislo in Char(11))
+        return number
+    is v_existuje number;
+        begin
+            select case
+                when exists(select 'x' from P_POBERATEL p
+                            join p_prispevky using(id_poberatela)
+                            where p.ROD_CISLO = p_rod_cislo)
+                then 1
+                else 0
+            end
+        into v_existuje from dual;
+            return v_existuje;
+        end;
+
+
 -- Funkcia: zistí, èi osoba žije v Nitrianskom kraji.
+
+    create or replace function zijeVNitrianskom(p_rod_cislo in char(11))
+    return number
+    is  v_jeZNitry number;
+        begin
+            select count(*) into v_jeZNitry from p_osoba
+                join P_MESTO pm using(PSC)
+                join P_OKRES using(id_okresu)
+                join P_KRAJ using(id_kraja)
+            where n_kraja like 'Nitr%';
+            if v_jeZNitry > 0
+                then return 1;
+            else
+                return 0;
+            end if;
+        end;
+
+        select zijeVNitrianskom('965608/8343') from dual;
+
+--14875 965608/8343
+
+select *
+from P_KRAJ;
 -- Funkcia: vráti poèet rôznych rokov, v ktorých osoba poberala príspevok.
 -- Funkcia: priemerná výška príspevku pod¾a typu pre daného poberate¾a.
 -- Funkcia: poèet zamestnávate¾ov pre dané rodné èíslo.
