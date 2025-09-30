@@ -411,15 +411,54 @@ from P_HISTORIA;
 
 --******************************DML**********************************************************
 -- Vlož novú osobu, ktorá má nastavený aj trvalý pobyt a poistenie.
+    insert into P_PLATITEL values ('030616/1212');
+
+    insert into P_OSOBA (ROD_CISLO, MENO, PRIEZVISKO, PSC, ULICA)
+        values ('030616/1212', 'Jozko', 'Mrkva', '05801', 'Nova 274');
+
+    insert into P_POISTENIE (ID_POISTENCA, ROD_CISLO, OSLOBODENY, DAT_OD)
+        values(8561, '030616/1212', 'n', sysdate);
+
+
 -- Zmeò zamestnávate¾a pre konkrétneho zamestnanca.
+    update p_zamestnanec
+    set ID_ZAMESTNAVATELA = '85794515'
+    where ROD_CISLO = '900711/0497';
+
+    select * from P_ZAMESTNANEC;
+
 -- Odstráò všetky príspevky staršie než 5 rokov.
+    delete P_PRISPEVKY
+    where kedy < add_months(sysdate, -(12*5));
+
 -- Vlož nový typ príspevku a pridaj záznam o jeho použití pre osobu.
+    insert into P_TYP_PRISPEVKU values(5, 250, 'homos');
+    insert into P_PRISPEVKY values(737, sysdate, 5, sysdate, 250);
+
+    select * from P_TYP_PRISPEVKU;
+    select * from P_POBERATEL;
+
 -- Vymažte všetkých poistencov, ktorí majú ukonèené poistenie (dat_do nie je NULL) a zároveò nemajú žiadne odvodové platby.
+    delete P_POISTENIE
+    where DAT_DO IS NOT NULL
+      and id_poistenca not in(select id_poistenca from P_ODVOD_PLATBA);
+
 -- Odstráò osoby, ktoré nemajú žiadne poistenie, zamestnanie ani príspevok.
+    delete P_OSOBA
+        where ROD_CISLO not in (select ROD_CISLO from P_POISTENIE)
+            and ROD_CISLO not in (select ROD_CISLO from P_ZAMESTNANEC)
+            and ROD_CISLO not in (select ROD_CISLO from P_POBERATEL);
+
 -- Vlož nového poistenca so všetkými povinnými údajmi a priradenou platbou.
--- Zmeòte mesto trvalého pobytu na 'Bratislava' pre všetky osoby, ktoré majú momentálne PSÈ zaèínajúce na '9'.
+
+-- Zmeòte mesto trvalého pobytu na 'Bratislava' pre všetky osoby, ktoré majú momentálne PSÈ zaèínajúce na '9'. MAM TO ZMENIT NA PSC BLAVY? CI, AKO??
+    update P_OSOBA
+        set psc = (select psc from P_MESTO where N_MESTA like 'Brat%' and rownum = 1)
+            where psc like '9%';
 -- Pridajte nového poistenca na základe existujúcej osoby. Nastavte dátum zaèiatku poistenia na dnešný dátum.
 -- Aktualizuj typ postihnutia pre osoby, ktoré majú len jeden príspevok.
+
+
 
 
 
