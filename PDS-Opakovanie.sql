@@ -464,6 +464,69 @@ from P_HISTORIA;
                                     group by p.ROD_CISLO
                                     having count(ID_POBERATELA) = 1);
 
+--********************************* Vzùahy a CHECK *****************************************************
+-- 61. Vytvorte vzùah medzi p_osoba a p_poistenie (cudzÌ kæ˙Ë).
+    alter table P_POISTENIE
+        add constraint fk_osoba_poistenie
+            foreign key (ROD_CISLO) references P_OSOBA(ROD_CISLO);
+
+-- Vytvorte vzùah medzi p_osoba a p_zamestnanec (cudzÌ kæ˙Ë).
+    alter table P_ZAMESTNANEC
+        add constraint fk_zamestnanec_osoba
+            foreign key (ROD_CISLO) references P_OSOBA(ROD_CISLO);
+
+-- Vytvorte CHECK, ktor˝ zak·ûe prÌspevok s nulovou sumou.
+    alter table P_PRISPEVKY
+    add constraint chck_prispevok_suma
+        check(suma > 0);
+
+-- Vytvorte CHECK, ktor˝ povolÌ odvod len do v˝öky 500 EUR.
+    alter table P_ODVOD_PLATBA
+        add constraint chck_odvod
+        check(suma <= 500);
+
+-- Vytvorte CHECK, ktor˝ overÌ, ûe d·tum ukonËenia zamestnania je po d·tume zaËiatku.
+    alter table P_ZAMESTNANEC
+        add constraint chck_ukoncenie
+        check(DAT_DO is null or DAT_DO > DAT_OD);
+
+-- Vytvorte tabuæku p_dieta, kde kaûdÈ dieùa m· rodiËa v p_osoba, ako cudzÌ kæ˙Ë.
+    create table p_dieta(
+        ROD_CISLO_DIETA char(11) not null primary key,
+        ROD_CISLO_RODIC char(11) not null,
+        constraint fk_rodic
+            foreign key (ROD_CISLO_RODIC) references P_OSOBA(ROD_CISLO),
+        constraint pfk_dieta
+            foreign key (ROD_CISLO_DIETA) references P_OSOBA(ROD_CISLO),
+        constraint chck_rodic
+            check(ROD_CISLO_RODIC != ROD_CISLO_DIETA)
+    );
+
+-- Vytvorte tabuæku p_adresa a naviaû ju na osobu pomocou cudzÌch kæ˙Ëov.
+    create table p_adresa(
+        id_adresa NUMBER GENERATED always AS IDENTITY PRIMARY KEY,
+        mesto varchar(50),
+        PSC char(5),
+        id_kraju number,
+        ROD_CISLO char(11),
+        constraint fk_adresa_osoba
+            foreign key (ROD_CISLO) references P_OSOBA(ROD_CISLO)
+    );
+
+-- Vytvorte CHECK, ktor˝ overÌ, ûe kÛd postihnutia je medzi 1 a 10.
+    alter table P_ZTP
+        add constraint chck_ID_postihnutie
+        check(ID_POSTIHNUTIA between 1 and 10);
+
+-- Vytvorte vzùah medzi prÌspevkom a typom prÌspevku (p_prispevok_typ).
+    alter table P_PRISPEVKY
+        add constraint fk_id_typu
+        foreign key(ID_TYPU) references p_typ_prispevku(id_typu);
+
+-- Vytvorte kompozitn˝ prim·rny kæ˙Ë na tabuæke, kde kombin·cia osoby a prÌspevku je unik·tna.
+    ALTER TABLE p_prispevky
+        ADD CONSTRAINT pk_prispevky_kompozitny
+        PRIMARY KEY (id_poberatela, id_typu);
 
 
 
