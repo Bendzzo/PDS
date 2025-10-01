@@ -457,6 +457,15 @@ from P_HISTORIA;
             where psc like '9%';
 -- Pridajte nového poistenca na základe existujúcej osoby. Nastavte dátum zaèiatku poistenia na dnešný dátum.
 -- Aktualizuj typ postihnutia pre osoby, ktoré majú len jeden príspevok.
+    update P_ZTP
+        set id_postihnutia = 5
+           where ROD_CISLO in (select p.ROD_CISLO from P_POBERATEL p
+                                    join P_PRISPEVKY  using (id_poberatela)
+                                    group by p.ROD_CISLO
+                                    having count(ID_POBERATELA) = 1);
+
+
+
 
 
 
