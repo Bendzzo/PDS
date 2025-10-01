@@ -48,4 +48,15 @@ data cur_os%rowtype;
 /    
     
     
-    
+select meno, priezvisko, cursor(select os_cislo from student
+                                where os_udaje.rod_cislo = student.rod_cislo) from os_udaje;
+                                
+select meno, priezvisko, listagg(os_cislo, ', ') within group (order by priezvisko)
+from os_udaje 
+left join student using(rod_cislo)
+group by meno, priezvisko, rod_cislo;
+                                
+                                
+                                
+                                
+                                
