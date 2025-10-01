@@ -528,6 +528,68 @@ from P_HISTORIA;
         ADD CONSTRAINT pk_prispevky_kompozitny
         PRIMARY KEY (id_poberatela, id_typu);
 
+--*************************** CAS *******************************************************
+-- 71. Vypoèítajte vek kadej osoby na základe dátumu narodenia.
+    select meno, priezvisko, ROD_CISLO,
+           TRUNC(MONTHS_BETWEEN(to_date(SUBSTR(ROD_CISLO, 1, 2) || '-' || MOD(substr(ROD_CISLO,3, 2), 50) || '-' || substr(ROD_CISLO, 5, 2), 'YY-MM-DD'), sysdate) / 12) as vek
+    from P_OSOBA;
+
+-- Vypíšte všetky osoby, ktoré sa narodili v nede¾u.
+    select meno, priezvisko, ROD_CISLO,
+           to_date(substr(ROD_CISLO, 1, 2) || '-' || MOD(substr(ROD_CISLO, 3, 2), 50) || '-' || substr(ROD_CISLO, 5, 2), 'RR-MM-DD') datum_narodenia from p_osoba
+        where to_char(to_date(substr(ROD_CISLO, 1, 2) || '-' || MOD(substr(ROD_CISLO, 3, 2), 50) || '-' || substr(ROD_CISLO, 5, 2), 'RR-MM-DD'), 'd') = '7';
+
+-- Vypíšte poèet osôb, ktoré sa narodili v priestupnı rok.
+    select count(*) from p_osoba
+    where to_char(to_date(substr(ROD_CISLO, 1, 2) || '-' || '02' || '-' || '28', 'RR-MM-DD') + 1, 'DD') = '29';
+
+-- Vypíšte kvartál (štvrrok), v ktorom sa narodilo najviac osôb.
+    select kvartal from (
+        select to_char(to_date(substr(ROD_CISLO, 5, 2) || '-' || MOD(substr(ROD_CISLO, 3, 2), 50) || '-' || substr(ROD_CISLO, 1, 2), 'DD-MM-RR'), 'Q') as kvartal,
+            count(*) pocet from p_osoba
+        group by to_char(to_date(substr(ROD_CISLO, 5, 2) || '-' || MOD(substr(ROD_CISLO, 3, 2), 50) || '-' || substr(ROD_CISLO, 1, 2), 'DD-MM-RR'), 'Q')
+        order by pocet desc
+    ) fetch first 1 rows with ties;
+
+-- Vypíšte všetkıch poistencov, ktorí boli poistení pred svojimi 18. narodeninami.
+    select meno, priezvisko, rod_cislo, dat_od,ADD_MONTHS(
+            to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+            MOD(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+            substr(ROD_CISLO, 1, 2), 'DD-MM-RR'), 18*12) datum_18_narodenin from p_osoba
+        join p_poistenie pp using(ROD_CISLO)
+        where ADD_MONTHS(
+            to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+            MOD(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+            substr(ROD_CISLO, 1, 2), 'DD-MM-RR'), 18*12)
+            > pp.dat_od;
+
+-- Zistite, v ktorı deò v tıdni sa narodilo najviac osôb.
+    select den from(
+      select to_char(to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+                             mod(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+                             substr(ROD_CISLO, 1, 2), 'DD-MM-RR'), 'DAY') as den, count(*) pocet from P_OSOBA
+      group by  to_char(to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+                             mod(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+                             substr(ROD_CISLO, 1, 2), 'DD-MM-RR'), 'DAY')
+      order by pocet desc
+    ) fetch first 1 rows with ties;
+
+-- Vypíšte osoby, ktoré dnes oslavujú narodeniny.
+    select meno, priezvisko, ROD_CISLO,  to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+                             mod(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+                             substr(ROD_CISLO, 1, 2), 'DD-MM-RR') datum_narodenia from P_OSOBA
+        where extract(day from to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+                             mod(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+                             substr(ROD_CISLO, 1, 2), 'DD-MM-RR'))
+                  = extract(day from sysdate)
+          and extract(month from to_date(substr(ROD_CISLO, 5, 2) || '-' ||
+                             mod(substr(ROD_CISLO, 3, 2), 50) || '-' ||
+                             substr(ROD_CISLO, 1, 2), 'DD-MM-RR'))
+                  = extract(month from sysdate)
+-- Vytvorte poh¾ad, ktorı bude obsahova poistencov a poèet dní, poèas ktorıch boli poistení (dat_do - dat_od).
+-- Vypíšte všetky osoby, ktoré sa narodili v pracovnı deò (pondelok a piatok).
+-- Vytvorte poh¾ad, ktorı bude obsahova osoby a poèet dní do ich najbliších narodenín.
+
 
 
 
