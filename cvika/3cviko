@@ -136,6 +136,10 @@ end;
 
 select rod_cislo, value(o).getVek() from osoby o order by value(o) desc;
 
+-- ***************************************** BONUS ULOHA *****************************************************************
+-- prerobit tabulku osoby na tabulku s atributom objektu osoba + otestovat volanie metod, update
+-- spravit map() triediacu metodu podla veku
+
 
 
 
