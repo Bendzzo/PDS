@@ -1,0 +1,149 @@
+--premenovanie tabuliek ST_(nazov-tabulky)
+set serveroutput on;
+
+declare
+    v_nazov varchar(100);
+    cursor cur_nazov_tab is 
+    (select ' alter table ' || table_name ||' rename to ST_' || table_name from tabs);
+begin
+    open cur_nazov_tab;
+        loop
+            fetch cur_nazov_tab into v_nazov;
+            exit when cur_nazov_tab%notfound;
+            dbms_output.put_line(v_nazov);
+            --execute immediate v_nazov;
+        end loop;
+    close cur_nazov_tab;
+end;
+/
+
+--premenovanie naspat
+select ' alter table ' || table_name ||  ' rename to ' || substr(table_name, 4) from tabs;
+
+declare
+    v_nazov varchar(100);
+    cursor cur_nazov_tab is 
+    (select ' alter table ' || table_name ||  ' rename to ' || substr(table_name, 4) from tabs);
+begin
+    open cur_nazov_tab;
+        loop
+            fetch cur_nazov_tab into v_nazov;
+            exit when cur_nazov_tab%notfound;
+            dbms_output.put_line(v_nazov);
+            --execute immediate v_nazov;
+        end loop;
+    close cur_nazov_tab;
+end;
+/
+
+--alter function [nazov] compile;
+--alter procedure [nazov] compile;
+
+select 'alter table ' || object_type || ' ' || object_name || ' compile' from user_procedures
+    where object_type in ('FUNCTION', 'PROCEDURE');
+
+begin
+    for command in (
+            select 'alter table ' || object_type || ' ' || object_name || ' compile' as riadok from user_procedures
+            where object_type in ('FUNCTION', 'PROCEDURE')
+        )
+        loop
+            dbms_output.put_line(command.riadok);
+            -- execute immediate command.riadok;
+        end loop;
+end;
+/
+
+
+-- vytvorit objekt OSOBA s atributmi (meno, priezvisko, rod_cislo)
+create or replace type OSOBA as object(
+    meno varchar(20),
+    priezvisko varchar(20),
+    rod_cislo char(11)
+);
+/
+
+-- vytvorit tabulku osoby s atributom typu OSOBA ako objekt
+create table OSOBY (
+    osoba OSOBA
+);
+
+
+insert into OSOBY 
+    select OSOBA(meno, priezvisko, rod_cislo) from os_udaje;
+
+select o.osoba.meno from osoby o; --ked dame select * tak sa zobrazy iba vyhnal1.osoba...
+
+--vytvorit tabulku objektov
+create table OSOBY of OSOBA;
+/
+
+insert into OSOBY 
+    select OSOBA(meno, priezvisko, rod_cislo) from os_udaje;
+    
+insert into OSOBY 
+    select meno, priezvisko, rod_cislo from os_udaje;
+
+select * from osoby; --tabulka objektov sa implicitne pretypuje na tabulku a atributy sa spravaju ako stlpce tabulky
+
+-- odstranenie duplicit z OSOBY
+select rowid, row_number() over (partition by rod_cislo order by null), rod_cislo
+    from osoby;
+    
+delete from osoby where rowid in (
+    select rowid from (
+        select rowid, row_number() over (partition by rod_cislo order by null) as poradie, rod_cislo
+        from osoby
+    )
+    where poradie > 1
+);
+
+-- metoda getVek
+alter type OSOBA
+    add member function getVek return number cascade;
+    
+create or replace type body OSOBA as
+    member function getvek return number is
+    begin
+        return vek_osoby(self.ROD_CISLO);
+    end;
+end;
+/
+
+select value(o).getVek() from osoby o;
+
+-- pridat triediacu funkciu order pre vek
+alter type OSOBA
+    add order member function orderVek(p_other osoba) return number cascade;
+    
+create or replace type body OSOBA as
+    member function getvek return number is
+    begin
+        return vek_osoby(self.ROD_CISLO);
+    end;
+    order member function orderVek(p_other osoba) return number is 
+    begin
+        if self.getVek() > p_other.getVek() then 
+            return 1;
+        elsif self.getVek() < p_other.getVek() then
+            return 0;
+        else
+            return -1;
+        end if;    
+    end;
+end;
+/
+
+select rod_cislo, value(o).getVek() from osoby o order by value(o) desc;
+
+
+
+
+
+
+
+
+
+
+
+
