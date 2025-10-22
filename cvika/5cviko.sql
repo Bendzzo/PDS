@@ -68,12 +68,6 @@ end;
 -- json
 -- varchar2/blob/clob
 -- check (is json)
-/
-create table student_json (
-    id number primary key;
-    document clob check(doc is json);
-);
-/
 
 -- pozor na zatvorky {}, [], a ciarky a medzery
 select '{"meno": "Jana", "vek": 22}' as json_text from dual;
@@ -89,6 +83,45 @@ select json_value('{"osoba":{"Name": "Marek"}}', '$.osoba.Name') from dual;
 select json_value('{"osoba":{"Name": "Marek"}}', '$.osoba.Name[0]') from dual;
 
 -- $.pole[*] - rozbali cele pole
+
+-- json_value - skalarna
+-- json_query - vracia objekt/pole v json texte - clov/varchar2 -- formatovy objekt ako json
+-- json_table - rozbali json do riadkov/stlpcov - ako bezna tabulka v databazach
+
+select json_query('{"Predmety": ["DB1", "DB2", "XML kod"]}', '$.Predmety') as cele_pole from dual;
+
+-- virtualna tabulka
+select jt.meno, jt.predmet from json_table(
+    '{"meno": "Zuzana", "Predmety": ["DB1", "DB2", "XML kod"]}', '$'
+        columns (meno varchar2(50) path '$.meno',
+                    nested path '$.Predmety[*]'
+                        columns (predmet varchar2(5) path '$')
+                  )
+) jt;
+
+-- json_exists - ci existuje cesta
+select json_exists('{"Vek": 25}', '$.Vek') from dual;
+-- pouziva sa vo where alebo case
+
+
+-- json_object - objekt : kluc a hodnota
+-- json_array - pole
+-- json_objectagg - viac riadkov do jedneho objektu
+-- json_arrayagg - agreguje viac riadkov do jedneho pola
+
+
+select json_object (
+    'os_cislo' value os_cislo, -- 2 je nazov stlpca
+    'rocnik' value rocnik absent on null -- alebo null on null/ V pripade absent on null tak bude iba os_cislo ak je null on null tak bude null 
+) from student;
+
+-- json_array
+-- pole
+select json_array (meno, priezvisko) from os_udaje;
+
+
+
+
 
 
 
