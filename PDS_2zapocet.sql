@@ -51,6 +51,20 @@ from os_udaje join student using(rod_cislo)
               join predmet using(cis_predm)
 group by rod_cislo, meno, priezvisko, dat_zapisu;
 
+--Aká hodnota bude vypísaná na obrazovke:
+
+declare
+    type t_pole IS VARRAY(4) OF integer;
+    pole t_pole;
+begin
+    pole:=t_pole(10,20,30,40,50);
+    pole.delete(4);
+    dbms_output.put_line(pole.count);
+end;
+
+--ODPOVED: Bude vyvolana chyba, pretoze sa do pola pridava 5 prvkov aj ked je o velkosti 4. A delete vymaze cele pole, cize sa nepouziva s parametrom.
+-- NIE pole.delete(4) ALE pole.delete
+
 -- Zápočet 1 - 29.10.2024
 -- ABCD - bola napísaná funkcia ktorá začínala XXXXX member function niečo a za XXXXX sa malo vybrať čo treba doplniť aby sa použila pri triedení - v tomto prípade to bol ORDER lebo bol parameter s tým istým typom
 -- ABCD - bola daná nested table s prvkami 10, 20, …, 70 a bol zavolaný príkaz nad nested table pole.delete(10) a že čo vypíše pole.last
