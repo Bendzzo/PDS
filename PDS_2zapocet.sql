@@ -75,3 +75,115 @@ end;
 -- Veľmi jednoduchý select z tabuľky xml dokumentov kde sa malo vypísať mená a priezviská
 -- Vypíšte okresy, v ktorých sa nenachádzajú postihnuté ženy
 -- Vypíšte všetky poistenia (stĺpce id_poistenca, rod_cislo, id_platitela) a v prípade, že je platba nad 100€ tak aj info o platbe (stĺpce cis_platby, suma)
+
+
+-- ************************************************** OPAKOVANIE **********************************************************************************
+-- 1. GENEROVANIE PRÍKAZOV
+    -- 1. Pomocou SELECT vygenerujte DROP TABLE príkazy pre všetky tabuľky v aktuálnej
+    -- schéme, ktoré obsahujú v názve reťazec 'ZALOHA'.
+    select 'drop table ' || table_name from TABS
+        where TABLE_NAME like 'P%';
+
+
+    -- 2. Napíšte SELECT, ktorý na základe systémových metadát vygeneruje príkazy na
+    -- zrušenie všetkých cudzích kľúčov v tabuľke p_prispevky.
+    select 'alter table p_prispevky drop constraint ' || constraint_name from USER_CONSTRAINTS
+        where TABLE_NAME = 'P_PRISPEVKY';
+
+    -- 3. Pomocou SELECT vygenerujte príkazy na pridelenie práv SELECT pre všetky
+    -- tabuľky používateľovi student. Využite systémové tabuľky so zoznamom tabuliek.
+    select 'grant select ' || table_name || ' to student' from tabs;
+
+    -- 4. Vytvorte SELECT, ktorý pre každý stĺpec v schéme začínajúci na id_ a dátového
+    -- typu NUMBER vygeneruje CREATE SEQUENCE s názvom seq_<table_name>-
+    -- _<column_name>.
+    select 'create sequence seq_' || table_name || '_' || column_name from USER_TAB_COLUMNS
+        where COLUMN_NAME like 'ID_%'
+        and DATA_TYPE = 'NUMBER';
+
+    -- 5. Pomocou SELECT vygenerujte príkazy na vypnutie všetkých triggerov vo všetkých
+    -- tabuľkách aktuálnej schémy.
+    select 'alter trigger ' || trigger_name || ' disable;' from USER_TRIGGERS;
+
+set serveroutput on;
+
+-- 3. KOLEKCIE
+    -- 1. Majme kód:
+    declare
+    type t_pole IS VARRAY(4) OF integer;
+     i integer;
+     pole t_pole;
+     j integer;
+    begin
+     pole := t_pole(1,2,3,4);
+     j := pole.first;
+     for i in 1 .. XXXXXXX loop
+     dbms_output.put_line(pole(j));
+     j := pole.next(j);
+     end loop;
+    end;
+    /
+    -- Čo je potrebné doplniť namiesto XXXXXX, aby boli vypísané všetky prvky poľa.
+    --ODPOVED: pole.count
+
+    -- 2. Majme:
+    declare
+     type t_pole is table of integer;
+     pole t_pole;
+    begin
+     pole := t_pole(1,2,3,4,5,6,7,8);
+     pole.delete(2);
+     FOR i in 1 .. pole.count LOOP
+         if pole.exists(i) then
+            dbms_output.put_line(pole(i));
+         end if;
+     END LOOP;
+    end;
+    /
+    -- Akú deklaráciu musíme definovať namiesto XXXXXXXXXX, aby výpis prebehol úspešne aj
+    -- pri dierach v indexoch po DELETE(2).
+
+    -- 3. Potrebujeme mapovať rodné číslo (VARCHAR2) → počet poistení (INTEGER) s
+    -- rýchlym prístupom podľa kľúča a bez požiadavky na súvislé indexy.
+    -- Doplňte vyznačené časti:
+    declare
+     type t_map is table of number XXXXXXXX; -- index by varchar2(11);
+     m t_map;
+     k XXXXXXXXXX -- varchar2(11);
+    begin
+     m('010101/0001') := 3;
+     m('990101/1234') := 0;
+     k := m.first;
+     while k is not null loop
+     dbms_output.put_line(k || ' => ' || m(k));
+     k := m.next(k);
+     end loop;
+    end;
+    /
+    -- Doplňte (a) a (b) tak, aby kód fungoval pre pole s textovým kľúčom.
+
+
+    -- 4. Majme anonymný blok, v ktorom sú použité rôzne typy kolekcií. Určte, ktoré z
+    -- nasledujúcich tvrdení o kolekciách platí:
+    -- VARRAY má vlastnosť LIMIT, vnorená tabuľka (TABLE OF) ju nemá.
+    -- Po DELETE(i) vo vnorenej tabuľke môžu vznikať diery v indexoch.
+    -- Iterácia FOR i IN 1..COUNT je bezpečná pre vnorenú tabuľku aj po DELETE(i).
+    -- Asociatívne pole podporuje textové kľúče a iteráciu cez FIRST/NEXT.
+    -- 5. Doplňte telo cyklu tak, aby iterácia bezpečne vypísala všetky existujúce
+    -- prvky vo vnorenej tabuľke po viacerých DELETE(i) (kolekcia môže mať diery):
+    -- declare
+    --  type t_tab is table of varchar2(50);
+    --  t t_tab := t_tab('A','B','C','D','E');
+    --  idx pls_integer;
+    -- begin
+    --  t.delete(2); t.delete(4);
+    --  idx := XXXXXX;
+    --  while idx is not null loop
+    --  dbms_output.put_line(t(idx));
+    --  idx := XXXXXX;
+    --  end loop;
+    -- end;
+    -- /
+    -- Doplňte (a) a (b) tak, aby sa použila správna iterácia nad kolekciou so schodmi v
+    -- indexoch.
+
