@@ -475,17 +475,203 @@ set serveroutput on;
 -- OUTER JOIN
     -- 1. Vypíšte mená, priezviská a počet poistení pre všetky osoby vrátane tých, ktoré
     -- nemajú žiadne poistenie.
-    
+        select meno, priezvisko, count(ID_POISTENCA) from P_OSOBA
+        left join p_poistenie using(ROD_CISLO)
+        group by meno, priezvisko;
+
     -- 2. Vypíšte mená a priezviská poistencov spolu s dátumom poslednej platby, ak
     -- existuje. Ak poistenec nemá žiadnu platbu, zobrazte namiesto dátumu text bez
     -- platby.
+        select meno, priezvisko, nvl(to_char(max(DAT_PLATBY), 'DD.MM.YYYY'), 'Bez platby') from P_OSOBA
+        join p_poistenie using(ROD_CISLO)
+        left join p_odvod_platba using(id_poistenca)
+        group by meno, priezvisko, ROD_CISLO;
+
+
     -- 3. Zobrazte všetkých zamestnávateľov a k nim priraďte zoznam poistencov, ktorí sú
     -- u nich aktuálne zamestnaní.
+        select ICO, nazov, LISTAGG(meno || ' ' || PRIEZVISKO || ' ' || ROD_CISLO, ', ') within group ( order by MENO ) zamestnanci
+        from P_ZAMESTNAVATEL za
+        join p_zamestnanec z on(za.ICO = z.ID_ZAMESTNAVATELA)
+        join p_osoba using(ROD_CISLO)
+        where DAT_DO is null
+        group by ICO, nazov;
+
     -- 4. Vypíšte zoznam všetkých miest a pri každom z nich počet poistencov, ktorí tam
     -- majú trvalé bydlisko.Ak v niektorom meste žiadny poistenec nebýva, zobrazte
     -- počet ako 0.
-    -- 5. Zobrazte názvy všetkých krajov spolu s priemerným počtom poistencov v nich.
+        select PSC, N_MESTA, count(ID_POISTENCA) from P_MESTO
+        left join p_osoba using(PSC)
+        left join P_POISTENIE using(ROD_CISLO)
+        group by PSC, N_MESTA;
+
+    -- 5. Zobrazte názvy všetkých krajov spolu s priemerným počtom poistencov v nich. --CELE ZLE
+        select N_KRAJA, avg(count(ID_POISTENCA)) from P_KRAJ
+        join P_OKRES using(id_kraja)
+        join P_MESTO using(id_okresu)
+        join p_osoba using(PSC)
+        join p_poistenie using(ROD_CISLO)
+        group by N_KRAJA;
 
 
+-- XML
+    -- 1. Vytvorte XML dokument formátu mesto -> osoby, ktorý bude obsahovať všetky
+    -- ukončené poberania príspevkov v tomto roku pre zvolené mesto. Zahrňte iba
+    -- osoby, ktoré poberali príspevok aspoň 12 mesiacov (súčet období).
+    select xmlroot(
+        xmlelement(
+            "Mesto",
+            xmlattributes(N_MESTA as "nazov"),
+            xmlagg(
+                    xmlforest(MENO, PRIEZVISKO)
+            )
+        ), version no value
+    ) as xml from P_MESTO
+    join P_OSOBA using(PSC)
+    join P_POBERATEL using(ROD_CISLO)
+    where DAT_DO is not null and extract(year from DAT_DO) = extract(year from sysdate)
+      and months_between(DAT_DO, DAT_OD) >= 12 and N_MESTA = 'Bardejov'
+    group by N_MESTA;
+
+    -- 2. Vytvorte XML dokument postihnutie -> osoby, ktorý pre každý typ postihnutia
+    -- vypíše menný zoznam osôb s týmto postihnutím.Požiadavky: koreňový element
+    -- <postihnutia>, každý blok <postihnutie> bude mať atribút nazov="...", vo vnútri
+    -- <osoby> budú elementy <clovek> v abecednom poradí (priezvisko, meno).
+        select xmlroot(xmlelement("postihnutia", xmlagg(
+                xmlelement("postihnutie", xmlattributes(nazov_postihnutia as "nazov"),
+                     xmlagg(
+                        xmlelement(
+                             "clovek", MENO || ' ' || PRIEZVISKO
+                        )
+                         order by PRIEZVISKO, MENO
+                     )
+                )
+            )
+            ), version no value
+        ) as xml from p_osoba
+        join p_ZTP using(rod_cislo)
+        join p_TYP_POSTIHNUTIA using(id_postihnutia)
+        group by nazov_postihnutia;
+
+
+    -- 3. Vytvorte XML dokument zamestnávateľ -> platby, ktorý pre každého
+    -- zamestnávateľa uvedie zoznam platieb uhradených poistencom v aktuálnom
+    -- roku.
+
+    -- TODO ZLE!
+        select xmlroot(
+            xmlelement(
+                "zamestnavatelia",
+                XMLAGG(
+                    xmlelement(
+                        "zamestnavatel", xmlattributes(NAZOV as "nazov"),
+                        xmlelement("poistenec", xmlattributes(ID_POISTENCA as "ID"),
+                            XMLAGG(
+                                xmlelement("platba", CIS_PLATBY || ' suma: ' || suma)
+                            )
+                        )
+                    )
+                )
+            ), version no value
+        ) as xml from P_ZAMESTNAVATEL z
+        join p_platitel p on (p.ID_PLATITELA = z.ICO)
+        join p_poistenie po on (p.ID_PLATITELA = po.ID_PLATITELA)
+        join p_odvod_platba using(id_poistenca)
+        group by NAZOV;
+
+
+    -- 4. Vytvorte XML dokument kraj -> (okres -> počty), ktorý pre každý kraj vypíše jeho
+    -- okresy a v nich počet poistencov s aktívnym poistením.
+        select xmlroot(
+            xmlelement(
+                "Kraje",
+                xmlagg(
+                    xmlelement(
+                        "kraj", xmlattributes(n_kraja as "nazov"),
+                        (select XMLAGG(
+                                    xmlelement(
+                                            "ID", xmlattributes(ID_OKRESU as "id", count(ID_POISTENCA) as "pocet")
+                                    )
+                             )
+                            from p_okres o
+                            join p_mesto using(id_okresu)
+                            join p_osoba using(PSC)
+                            join P_POISTENIE using(ROD_CISLO)
+                            where DAT_DO is null and o.ID_KRAJA = k.ID_KRAJA
+                            group by ID_OKRESU
+                        )
+                    )
+                )
+            ), version no value
+        ) as xml from P_KRAJ k;
+
+    -- 5. Vytvorte XML dokument poberatelia s vysokou sumou, ktorý uvedie osoby, ktoré v
+    -- posledných 24 mesiacoch získali celkovú sumu príspevkov ≥ 1500 €.
+    -- TODO ZLE!!!!!
+        select xmlroot(
+            xmlelement(
+                "osoby",
+                xmlagg(
+                    xmlelement(
+                        "clovek", xmlattributes(ROD_CISLO as "rc", MESTO as "mesto"),
+                        xmlelement(
+                            "suma", sum(SUMA),
+                            xmlelement(
+                                "obdobia",
+                                xmlagg(
+                                    xmlelement(
+                                        "obdobie", xmlattributes(to_char(od, 'YYYY.MM') as "od", to_char(do, 'YYYY.MM')),
+                                        SUMA
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ), version no value
+        ) from P_POBERATEL
+        join p_prispevky using(id_poberatela)
+        where months_between(sysdate, OBDOBIE) <= 24
+        group by ID_POBERATELA
+        having sum(suma) >= 1500;
+
+        -- Formát:
+        -- <osoby>
+        --  <clovek rc="..." mesto="...">
+        --  <suma>CELKOVA_SUMA</suma>
+        --  <obdobia>
+        --  <obdobie od="YYYY-MM" do="YYYY-MM">SumaZaObdobie</obdobie>
+        --  …
+        --  </obdobia>
+        --  </clovek>
+        -- </osoby>
+
+-- ZÁKLADNÁ ANALYTIKA
+    -- 1. Ku každému mestu určte poradie poistencov podľa celkovej sumy zaplatených
+    -- platieb za posledných 12 mesiacov.Zobrazte pre každé mesto prvých troch
+    -- poistencov (Top-3).
+       select * from (
+           select n_mesta, meno, priezvisko, sum(suma), dense_rank() over (partition by n_mesta
+                                                                    order by sum(suma) desc) rnk
+            from P_OSOBA
+            join p_mesto using(PSC)
+            join P_POISTENIE using(ROD_CISLO)
+            join p_odvod_platba using(id_poistenca)
+            group by n_mesta, meno, priezvisko
+        ) where rnk <= 3
+        order by N_MESTA;
+
+    -- 2. Pre každý kraj vypočítajte percentilové rozdelenie súm príspevkov na osobu za
+    -- aktuálny rok a vyberte osoby, ktoré patria do horného decilu (top 10 %) v rámci
+    -- svojho kraja.
+    -- 3. Vypočítajte pre každého poistenca bežiaci súčet (running total) súm platieb
+    -- zoradený podľa dátumu platby. Zobrazte rodné číslo, dátum platby, sumu a
+    -- bežiaci súčet do daného dátumu.
+    -- 4. Pre každý typ príspevku určte medián vyplatených súm za posledných 24
+    -- mesiacov a zároveň vypočítajte odchýlku každej konkrétnej vyplatenej sumy od
+    -- tohto mediánu.
+    -- 5. Zistite 5 miest s najvyššou priemernou výškou príspevku na osobu za posledný
+    -- rok, pričom do priemeru sa započítava len prvá platba osoby v danom mesiaci.
+    -- Zobrazte poradie miest (1–5), názov mesta a daný priemer.
 
 
