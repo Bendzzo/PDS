@@ -93,6 +93,53 @@ update p_osoba set meno = 'Zmenene' where rod_cislo = '790705/8379';
 select * from p_osoba as of timestamp (systimestamp - interval '5' minute) where rod_cislo = '790705/8379';
 flashback table p_osoba to timestamp (systimestamp - interval '5' minute);
 
+--connect by level - co to je?
+-- oracle mechanizmus na prechadzanie stromovej struktury
+-- napr. zamestnanec - nadriadeny
+-- root je vzdy 1 ak nedefinujeme inak
+
+select level as poradie from dual connect by level <= 10;
+
+create table emp_demo(
+    id number primary key,
+    meno varchar2(50) not null,
+    manazer_id number null
+);
+
+insert into emp_demo values(1, 'Jana', null);
+insert into emp_demo values(2, 'Boris', 1);
+insert into emp_demo values(3, 'Cyril', 2);
+insert into emp_demo values(4, 'Dana', 3);
+insert into emp_demo values(5, 'Martin', 4);
+
+-- level ukazuje hlbku, 1 - koren, 2 dieta, 3 vnuk...
+select meno, manazer_id, level from emp_demo start with manazer_id is null -- zacni od korena (bez sefa)
+    connect by prior id = manazer_id;
+
+-- with  -virtualna tabulka s ktorou vieme nasledne pracovat
+with studenti as (
+    select os_cislo, rocnik from student where rocnik = 1
+)
+select * from studenti;
+
+with mesiace as(
+    select level mesiac from dual
+    connect by level <= 12
+) select mesiac, to_char(to_date(mesiac, 'MM'), 'Month', 'NLS_DATE_LANGUAGE=ENGLISH') as nazov from mesiace;
+
+
+-- pre kazdeho zamestnavatela vypis pocet poistenych zien a muzov
+select nazov, sum(case when to_number(substr(rod_cislo, 3, 2)) >= 50 then 1 else 0 end) pocet_zien,
+    sum(case when to_number(substr(rod_cislo, 3, 2)) < 50 then 1 else 0 end) pocet_muzov
+from p_zamestnavatel
+join p_zamestnanec on (id_zamestnavatela = ico)
+join p_osoba using(rod_cislo)
+group by nazov, ICO;
+
+-- zadanie na DOMA
+--pocet poistencov narodenych v jednotlivych mesiacoch, roztriedenych podla stavu oslobodenia (A, A/N, N)
+-- with, connect by level a case
+
 --***************************** DDU ************************************
 -- 10 zaznamov rokov s odchylkou +- 10, connect by level <= 10
 
