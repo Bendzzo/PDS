@@ -59,7 +59,7 @@ pragma autonomous_transaction;
         insert into p_logy(id, datum, text) values (1, sysdate, p_text);
         commit; -- nezavisly commit
     end;
-    
+/    
 select count(*) from p_logy;
 
 declare 
@@ -69,6 +69,7 @@ begin
     log_vynimky('Autonomna');
     rollback;
 end;
+/
 --V tabulke bude id 1, pretoze je autonomna a je jej jedno ci si id 2 robi rollback
 
 -- deferrable constraints
@@ -77,6 +78,20 @@ end;
 
 set constraints nazov immediate; -- bude platit pre 'nazov'
 set constraints all immediate; --bude platit pre vsetky
+
+--recyclebin a flashback
+create table test_dal as select * from p_osoba where rownum <= 3;
+drop table test_dal;
+show parameter recyclebin;
+flashback table test_dal to before drop;
+purge recyclebin;
+
+
+--flashback
+select * from p_osoba where rod_cislo = '790705/8379';
+update p_osoba set meno = 'Zmenene' where rod_cislo = '790705/8379';
+select * from p_osoba as of timestamp (systimestamp - interval '5' minute) where rod_cislo = '790705/8379';
+flashback table p_osoba to timestamp (systimestamp - interval '5' minute);
 
 --***************************** DDU ************************************
 -- 10 zaznamov rokov s odchylkou +- 10, connect by level <= 10
