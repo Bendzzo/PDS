@@ -45,6 +45,39 @@ select sum(suma) from p_prispevky where id_poberatela = 7751;
 --ak spravime commit tak sa vsetky doterajsie savepointy vymazu !!!!
 
 
+-- hniezdene - transakcia v transakcii a autonomne transakcie - uplne nezavisle transakcie
+
+create table p_logy(
+    id number primary key,
+    datum date default sysdate not null,
+    text varchar2(400)
+);
+
+create or replace procedure log_vynimku(p_text varchar2) is
+pragma autonomous_transaction;
+    begin
+        insert into p_logy(id, datum, text) values (1, sysdate, p_text);
+        commit; -- nezavisly commit
+    end;
+    
+select count(*) from p_logy;
+
+declare 
+begin
+    insert into p_logy(id, datum, text)
+        values (2, sysdate, 'Priamo vlozeny zaznam');
+    log_vynimky('Autonomna');
+    rollback;
+end;
+--V tabulke bude id 1, pretoze je autonomna a je jej jedno ci si id 2 robi rollback
+
+-- deferrable constraints
+-- kontrola integritneho obmedzenia hned alebo neskor
+-- immediate a deferred
+
+set constraints nazov immediate; -- bude platit pre 'nazov'
+set constraints all immediate; --bude platit pre vsetky
+
 --***************************** DDU ************************************
 -- 10 zaznamov rokov s odchylkou +- 10, connect by level <= 10
 
