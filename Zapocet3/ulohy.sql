@@ -22,8 +22,8 @@ WHERE NOT EXISTS (SELECT 'x'
 --    ktorých id_osoby sa nachádza v tabuľke data_osoby používateľa dusan na vzdialenom serveri.
 UPDATE p_poistenie
 SET dat_do = SYSDATE
-    WHERE id_osoby IN (SELECT id_osoby
-                        FROM dusan.data_osoby@remote_link
+WHERE id_osoby IN (SELECT id_osoby
+                   FROM dusan.data_osoby@remote_link
 );
 
 -- 5.	Máme vytvorený databázový link remote_link, ktorý sa odkazuje na inštanciu orcl_pdb.Použitý používateľ je jana.
@@ -31,14 +31,14 @@ SET dat_do = SYSDATE
 --    ktorých identifikátor je uložený v tabuľke inactive_ids používateľa tomas na vzdialenom serveri.
 UPDATE p_zamestnanec
 SET stav = 'NEAKTIVNY'
-    WHERE id_zamestnanec in (SELECT ID_ZAMESTNANEC from tomas.inactive_ids@remote_link);
+WHERE id_zamestnanec in (SELECT ID_ZAMESTNANEC from tomas.inactive_ids@remote_link);
 
 -- 6. Máme vytvorený databázový link remote_link, ktorý sa odkazuje na inštanciu orcl_pdb.
 -- Použitý používateľ je jana. Aktualizujte lokálnu tabuľku p_student, kde ukončíte platnosť štúdia pre všetkých študentov,
 -- ktorých os_cislo sa nachádza v tabuľke ukonceni_studenti používateľa lenka na vzdialenom serveri.
 UPDATE p_student
 SET dat_do = sysdate
-    WHERE os_cislo in (SELECT os_cislo from lenka.ukonceni_studenti@remote_link);
+WHERE os_cislo in (SELECT os_cislo from lenka.ukonceni_studenti@remote_link);
 
 -- ******************************* INSERT ********************************************************************
 -- 7.	Máme vytvorený databázový link remote_link, ktorý sa odkazuje na inštanciu students_pdb servera orion.
@@ -50,22 +50,22 @@ select * from martin.predmet_link@remote_link;
 -- 8.	Máme vytvorený databázový link remote_link, ktorý sa odkazuje na inštanciu students_pdb.
 -- Použitý používateľ je martin. Napíšte príkaz,
 -- ktorý vloží do lokálnej tabuľky p_ucty záznamy z tabuľky backup_ucty používateľa lenka na vzdialenom serveri.
-    INSERT INTO p_ucty
-    SELECT * from lenka.backup_ucty@remote_link;
+INSERT INTO p_ucty
+SELECT * from lenka.backup_ucty@remote_link;
 
 -- ********************************** DELETE cez DB link *****************************************************
 -- 9.	Máme vytvorený databázový link remote_link.Použitý používateľ je andrea, ktorá má prístup ku všetkým tabuľkám celej inštancie.
 -- Odstráňte z lokálnej tabuľky p_poberatel všetkých poberateľov, ktorých id_poberatela sa nachádza v
 -- tabuľke del_ids používateľa andrea na vzdialenom serveri.
-    DELETE from p_poberatel
-    WHERE id_poberatela in (SELECT ID_POBERATELA from andrea.del_ids@remote_link);
+DELETE from p_poberatel
+WHERE id_poberatela in (SELECT ID_POBERATELA from andrea.del_ids@remote_link);
 
 -- 10.	Máme vytvorený databázový link remote_link. Použitý používateľ je andrea.
 -- Odstráňte z lokálnej tabuľky p_nepritomnost všetky záznamy,
 -- ktorých id_neprit sa nachádza v tabuľke del_neprit používateľa tomas na vzdialenom serveri.
-    DELETE from p_nepritomnost pn
-        WHERE exists(select 'x' from tomas.del_neprit@remote_link rmt
-                        where pn.id_neprit = rmt.id_neprit);
+DELETE from p_nepritomnost pn
+WHERE exists(select 'x' from tomas.del_neprit@remote_link rmt
+             where pn.id_neprit = rmt.id_neprit);
 
 -- ******************************************* Indexy **********************************************************
 -- Sada 1 – Generovanie SQL príkazov
@@ -73,10 +73,26 @@ select * from martin.predmet_link@remote_link;
 -- 11.	Vygenerujte príkazy (netreba spustiť) na zrušenie všetkých B-tree indexov nad tabuľkou p_poistenie.
 -- Použite pohľad user_indexes (atribúty index_name, table_name, index_type), pričom index_type nadobúda hodnotu „NORMAL“.
 
+    SELECT 'DROP INDEX "' || index_name || '";'
+    FROM user_indexes
+    WHERE table_name = 'P_POISTENIE'
+      AND index_type = 'NORMAL';
+
 
 -- 12.	Vygenerujte príkazy (netreba spustiť) na zrušenie všetkých indexov nad tabuľkou p_mesto,
 -- okrem indexov, ktoré zabezpečujú unikátnosť. Použite pohľady user_indexes a user_constraints (constraint_type = 'U').
+    SELECT 'DROP INDEX ' || index_name || ';'
+    FROM user_indexes
+    WHERE table_name = 'P_MESTO'
+      AND index_name NOT IN (
+        SELECT index_name
+        FROM user_constraints
+        WHERE table_name = 'P_MESTO'
+          AND constraint_type IN ('U', 'P') -- U = Unique, P = Primary Key (tiež je unikátny)
+          AND index_name IS NOT NULL
+    );
 
+    select * from user_indexes;
 
 -- 13.	Vygenerujte príkazy (netreba spustiť) na rebuild všetkých indexov,
 -- ktoré sú asociované s cudzími kľúčmi v schéme používateľa.
@@ -119,28 +135,3 @@ select * from martin.predmet_link@remote_link;
 -- select *
 -- from p_osoba
 -- where substr(rod_cislo,1,1) = '6';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
